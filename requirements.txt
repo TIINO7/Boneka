@@ -3,5 +3,5 @@ pydantic==2.11.7
 python_bcrypt==0.3.2
 SQLAlchemy==2.0.29
 uvicorn==0.35.0
-pydantic[email]==2.8.2
+email-validator
 uuid
