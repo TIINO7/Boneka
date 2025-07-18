@@ -1,10 +1,12 @@
+from io import BytesIO
 from typing import List
 from sqlalchemy.orm import Session
 from database import get_db
-from fastapi import APIRouter, Depends, HTTPException, HTTPException
-from models import  User
+from fastapi import APIRouter, Depends, File, HTTPException, HTTPException, UploadFile
+from models import  ProfileImage, User
 from schemas.supplier_schema import Supplier as SupplierBase, SupplierCreate, SupplierUpdate
 from uuid import UUID
+from fastapi.responses import StreamingResponse
 
 # Create a new router for users
 supplier_router = APIRouter()
@@ -94,3 +96,43 @@ def supplier_exists(email: str, db: Session = Depends(get_db)):
     else:
         return True
     
+# add a profile picture to the suppiler
+@supplier_router.post("/image/{user_id}")
+async def add_profile_image(user_id:UUID,file: UploadFile = File(...), db:Session = Depends(get_db)):
+    supplier = db.query(User).filter(User.id == user_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # 1. Read the file contents
+    contents = await file.read()       # bytes
+    
+    # 2. check if user profile alread exists if so then update
+    if supplier.profile_image:
+        supplier.profile_image.image_data = contents
+
+    else:
+    # 3. Create the RequestImage row if it wasnt already created
+        img = ProfileImage(
+            user_id=supplier.id,
+            image_data = contents
+        )
+    
+        db.add(img)
+        db.commit()
+        db.refresh(img)
+    
+    db.commit()
+
+    return {"msg": "successful", "image_id": img.id if supplier.profile_image is None else supplier.profile_image.id}
+    
+#get image of supplier profile
+@supplier_router.get("/image/{supplier_id}")
+def get_profile_image(supplier_id: UUID, db: Session = Depends(get_db)):
+    supplier = db.query(User).filter(User.id == supplier_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not supplier.profile_image:
+        raise HTTPException(status_code=404, detail="Profile image not found")
+    
+    return StreamingResponse(BytesIO(supplier.profile_image.image_data), media_type="image/png")

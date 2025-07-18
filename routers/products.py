@@ -27,17 +27,14 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.refresh(db_product)
     return db_product
 
-@product_router.post("/{product_id}/images", response_model=ProductBase)
+@product_router.post("/{product_id}/images")
 async def add_product_images(
     product_id: UUID,
     file: UploadFile = File(...),  # required
-    file2: Optional[UploadFile] = File(None),  # optional
-    file3: Optional[UploadFile] = File(None),  # optional
     db: Session = Depends(get_db)
 ):
     """
-    add up to 3 product images 
-
+    add up to 4 images for a product 
     Args:
         product_id (UUID): _description_
         file (UploadFile, optional): _description_. Defaults to File(...).
@@ -52,6 +49,11 @@ async def add_product_images(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    #check if the amount of images for a product have reached the maximum allowed 4
+    
+    image_count = db.query(ProductImage).filter(ProductImage.product_id == db_product.id).count()
+    if image_count >= 4:
+        raise HTTPException(status_code=500 , detail="upload amount reachecd")
     # Read file1
     contents = await file.read()
     new_image = ProductImage(
@@ -59,36 +61,11 @@ async def add_product_images(
         image_data=contents
     )
     db.add(new_image)
-    
-    # Read optional file2
-    if file2:
-        contents2 = await file2.read()
-        new_image2 = ProductImage(
-        product_id=product_id,
-        image_data=contents2
-    )
-        db.add(new_image2)
-
-    # Read optional file3
-    if file3:
-        contents3 = await file3.read()
-        new_image3 = ProductImage(
-        product_id=product_id,
-        image_data=contents3
-    )
-        db.add(new_image3)
-
     db.commit()
     db.refresh(new_image)
-    if new_image2 :
-        db.refresh(new_image2) 
-    if new_image3:
-        db.refresh(new_image3)
 
     return {"msg": "successful",
-            "image_id1": new_image.id,
-            "image_id2": new_image2.id if new_image2 else None,
-            "image_id3": new_image2.id if new_image3 else None}
+            "image_id1": new_image.id}
     
 
 @product_router.get("/{product_id}/images", response_model=list[UUID])
@@ -103,11 +80,9 @@ def list_product_images(product_id: UUID, db: Session = Depends(get_db)):
     images = db.query(ProductImage).filter(ProductImage.product_id == product_id).all()
     return [img.id for img in images]
 
-@product_router.get("/{product_id}/images/{image_id}")
+@product_router.get("/images/{image_id}")
 def get_product_image(
-    product_id: UUID,
     image_id: UUID,
-    slot: int = 1,  # choose which file field: 1, 2 or 3
     db: Session = Depends(get_db)
 ):
     """
@@ -116,7 +91,7 @@ def get_product_image(
     """
     img: ProductImage | None = (
         db.query(ProductImage)
-        .filter(ProductImage.id == image_id, ProductImage.product_id == product_id)
+        .filter(ProductImage.id == image_id)
         .first()
     )
     if not img:
@@ -124,9 +99,6 @@ def get_product_image(
 
     data = img.image_data
     
-    if not data:
-        raise HTTPException(404, f"No data in image slot {slot}")
-
     # return raw bytes as image/jpeg (or you can detect/parameterize the MIME-type)
     return StreamingResponse(BytesIO(data), media_type="image/jpeg")
 

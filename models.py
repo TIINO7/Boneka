@@ -25,7 +25,6 @@ class User(Base):
     latitude  = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     
-    
     #relationships
     requests = relationship("RequestPost", back_populates="customer", cascade="all, delete")
     offers = relationship("Offer", back_populates="supplier", cascade="all, delete")
@@ -68,7 +67,7 @@ class Offer(Base):
     supplier_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     proposed     = Column(Numeric(12,2), nullable=False)
     status       = Column(Enum("pending","accepted","rejected", name="offer_statuses"),
-                          server_default="pending", nullable=False)
+                        server_default="pending", nullable=False)
     created_at   = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     request = relationship("RequestPost", back_populates="offers")

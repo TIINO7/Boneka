@@ -4,7 +4,6 @@ from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, HTTPException
 from models import Offer, RequestPost, User
 from schemas.offer_schema import OfferAction, OfferCreate, OfferRead, RequestRead
-
 from uuid import UUID
 
         
@@ -13,7 +12,7 @@ offer_router = APIRouter(prefix="/offers", tags=["offers"])
 
 
 # fetch all the requests that a supplier can respond to
-@offer_router.get("/requests/{supplier_id}", response_model=List[RequestRead])
+@offer_router.get("/requests/{supplier_id}")
 def get_requests_for_supplier(
     supplier_id: UUID ,
     db: Session = Depends(get_db),
