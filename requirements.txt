@@ -4,4 +4,3 @@ python_bcrypt==0.3.2
 SQLAlchemy==2.0.29
 uvicorn==0.35.0
 uuid
-io
