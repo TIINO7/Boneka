@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, HTTPException
 from models import  User
-from schemas.supplier_schema import Supplier as SupplierBase, SupplierCreate
-
+from schemas.supplier_schema import Supplier as SupplierBase, SupplierCreate, SupplierUpdate
+from uuid import UUID
 
 # Create a new router for users
 supplier_router = APIRouter()
@@ -41,17 +41,27 @@ def get_supplier(name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Supplier not found")
     return supplier
 
-@supplier_router.put("/{email}", response_model=SupplierBase)
-def update_supplier(email: str, supplier: SupplierCreate, db: Session = Depends(get_db
+# get supplier by id
+@supplier_router.get("{user_id}/suplier",response_model=SupplierBase)
+def get_supplier_by_id(user_id:UUID, db:Session = Depends(get_db)): 
+    supplier = db.query(User).filter(User.id == user_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    return supplier
+
+@supplier_router.put("/{user_id}", response_model=SupplierBase)
+def update_supplier(user_id: UUID, supplier: SupplierUpdate, db: Session = Depends(get_db
 )):
-    existing_supplier = db.query(User).filter(User.email == email).first()
+    existing_supplier = db.query(User).filter(User.id == user_id).first()
     if not existing_supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
     
     # Update supplier details
     existing_supplier.email = supplier.email
+    # TODO: verify that the new email address supplied indeed belongs to the user
     existing_supplier.name = supplier.name
-    existing_supplier.phone_number = supplier.phone_number if supplier.phone_number else None
+    existing_supplier.phone_number = supplier.phone_number 
     existing_supplier.latitude = supplier.latitude
     existing_supplier.longitude = supplier.longitude
     
@@ -60,9 +70,9 @@ def update_supplier(email: str, supplier: SupplierCreate, db: Session = Depends(
     
     return existing_supplier
 
-@supplier_router.delete("/{email}", response_model=SupplierBase)
-def delete_supplier(email: str, db: Session = Depends(get_db)):
-    supplier = db.query(User).filter(User.email == email).first()
+@supplier_router.delete("/{user_id}", response_model=SupplierBase)
+def delete_supplier(user_id:UUID, db: Session = Depends(get_db)):
+    supplier = db.query(User).filter(User.id == user_id).first()
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
     

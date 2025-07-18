@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import List
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from database import get_db
@@ -35,6 +36,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         date_of_birth=user.date_of_birth,
         name=user.name,
+        gender = user.gender,
         surname=user.surname,
         status = "pending",
         phone_number=user.phone_number if user.phone_number else None,
@@ -89,7 +91,7 @@ def get_profile_image(user_id: UUID, db: Session = Depends(get_db)):
 
 
 # Endpoint to get user details by username
-@user_router.get("/{username}", response_model=UserBase)
+@user_router.get("/{username}", response_model=List[UserBase])
 def get_user(username: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).all()
     if not user:
@@ -97,6 +99,7 @@ def get_user(username: str, db: Session = Depends(get_db)):
     return user
 
 #endpoint to get user details by id
+@user_router.get("/{user_id}/user",response_model=UserBase)
 def get_user_by_id(user_id: UUID, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

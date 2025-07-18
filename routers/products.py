@@ -15,7 +15,13 @@ product_router = APIRouter()
 #crud operations for products
 @product_router.post("/", response_model=ProductBase)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    db_product = Product(**product.dict())
+    db_product = Product(
+        name = product.name,
+        description = product.description,
+        price = product.price,
+        category = product.category,
+        supplier_id = product.supplier_id
+    )
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
@@ -184,12 +190,12 @@ def search_products(query: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No products found matching the query")
     return products
 
-@product_router.get("/supplier/{supplier_id}/count", response_model=int)
+@product_router.get("/supplier/{supplier_id}/count")
 def count_products_by_supplier(supplier_id: UUID, db: Session = Depends(get_db)):
     count = db.query(Product).filter(Product.supplier_id == supplier_id).count()
     return count
 
-@product_router.get("/count", response_model=int)
+@product_router.get("/count")
 def count_all_products(db: Session = Depends(get_db)):
     count = db.query(Product).count()
     return count

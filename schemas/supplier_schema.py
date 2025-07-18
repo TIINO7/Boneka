@@ -12,6 +12,14 @@ class SupplierBase(BaseModel):
     
 class SupplierCreate(SupplierBase):
     pass
+
+class SupplierUpdate(BaseModel):
+    email : EmailStr
+    name: str
+    phone_number: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    
     
 class Supplier(SupplierBase):
     id: UUID

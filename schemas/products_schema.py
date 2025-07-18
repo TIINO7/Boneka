@@ -6,7 +6,7 @@ class ProductBase(BaseModel):
     name: str
     description : Optional[str] = None
     price : float
-    supplier_id: int    
+    supplier_id: UUID    
     category: str  # e.g. electronics, furniture, etc.
     
 class ProductCreate(ProductBase):

@@ -5,17 +5,20 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
+
+
 class User(Base):
     __tablename__ = "users"
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username   = Column(String, nullable=False)
+    username   = Column(String, nullable=True)
     role       = Column(Enum("customer","supplier","admin", name="user_roles"), nullable=False)
     name       = Column(String, nullable=False)
-    surname    = Column(String, nullable=False) 
+    surname    = Column(String, nullable=True) 
     phone_number = Column(String, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
     date_of_birth = Column(Date, nullable=True)
+    gender = Column(String) # male or female
     created_at    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     status     = Column(Enum("active","disabled","pending", name="user_statuses"),
                           server_default="active", nullable=False)
@@ -100,3 +103,15 @@ class ProfileImage(Base):
     image_data = Column(LargeBinary, nullable=False)
 
     user = relationship("User", back_populates="profile_image", uselist=False)
+    
+    
+# auth models 
+class DeviceToken(Base):
+    __tablename__ = "device_tokens"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    device_id = Column(String, nullable=False)  # provided by the app
+    token = Column(String, unique=True, nullable=False)
+    issued_at = Column(DateTime, server_default=func.now(), nullable=False)
+    last_used = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
