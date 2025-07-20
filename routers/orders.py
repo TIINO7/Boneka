@@ -36,7 +36,11 @@ def mark_order(action:OrderAction,db:Session=Depends(get_db)):
     return {"msg": "order status updated successfully"}
 
 # get all delivered orders , can be used as history
-@orders_router.get("/completed_orders",response_model=list[OrderOut])
-def get_all_completed_orders(user_id:UUID,db:Session=Depends(get_db)):
-    orders = db.query(Order).filter(Order.status == "delivered").all()
+@orders_router.get("/completed_orders", response_model=list[OrderOut])
+def get_all_completed_orders(user_id: UUID, db: Session = Depends(get_db)):
+    orders = (
+        db.query(Order)
+        .filter(Order.status == "delivered", Order.customer_id == user_id)
+        .all()
+    )
     return orders
