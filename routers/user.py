@@ -9,8 +9,6 @@ from schemas.user_schema import User as UserBase , UserCreate
 from uuid import UUID
 
 
-
-        
 # Create a new router for users
 user_router = APIRouter()
 

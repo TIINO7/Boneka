@@ -19,6 +19,7 @@ def create_request(request: RequestCreate, db: Session = Depends(get_db)):
         title = request.title,
         category = request.category,
         description = request.description,
+        quantity = request.quantity,
         offer_price = request.offer_price,
         customer_id = request.customer_id
     )

@@ -34,3 +34,7 @@ class RequestRead(BaseModel):
 class OfferAction(BaseModel):
     action: Literal["accept","reject"]
     customer_id: UUID
+    
+class OfferAccept(BaseModel):
+    request_id : UUID
+    supplier_id: UUID

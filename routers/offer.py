@@ -2,8 +2,8 @@ from typing import List
 from sqlalchemy.orm import Session
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, HTTPException
-from models import Offer, RequestPost, User
-from schemas.offer_schema import OfferAction, OfferCreate, OfferRead, RequestRead
+from models import Offer, Order, RequestPost, User
+from schemas.offer_schema import OfferAction, OfferCreate, OfferRead, RequestRead,OfferAccept
 from uuid import UUID
 
         
@@ -69,12 +69,26 @@ def list_offers(
 #Accept / decline a specific offer
 
 # verify this sketchy logic i just wrote
-@offer_router.patch("/offers/{offer_id}/", response_model=OfferRead)
+@offer_router.patch("/offers/{offer_id}/")
 def respond_to_offer(
     offer_id: UUID,
     action: OfferAction,
     db: Session = Depends(get_db),
 ):
+    """_summary_
+    Used by the customer to accept an offer and create an order
+    Args:
+        offer_id (UUID): _description_
+        action (OfferAction): _description_
+        db (Session, optional): _description_. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: _description_
+        HTTPException: _description_
+
+    Returns:
+        _type_: _description_
+    """
 
     offer = (
         db.query(Offer)
@@ -92,7 +106,56 @@ def respond_to_offer(
     # if accepted, you may also want to close the request:
     if action.action == "accept":
         offer.request.status = "accepted"
+        
+        #create an order if the requested is accepted by the customer
+        order = Order(
+            request_id = offer.request.id,
+            offer_id = offer.id,
+            customer_id = offer.request.customer_id,
+            supplier_id = offer.supplier_id,
+            status = "placed",
+            total_price = offer.proposed,
+            quanity = offer.request.quantity
+        )
+        db.add(order)
+        db.commit()
+        db.refresh(order)
+        return order
+    else:
+        db.commit()
+        return {"msg":"offer rejected"}
+
+# accept offer at face value
+@offer_router.post("/accept_request/")
+def accept_request(offer: OfferAccept,
+                   db:Session=Depends(get_db)):
+    """_summary_
+
+    Args:
+        offer (OfferAccept): _description_
+        db (Session, optional): _description_. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: _description_
+        HTTPException: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    req = db.query(RequestPost).filter_by(id=offer.request_id, status="open").first()
+    if not req:
+        raise HTTPException(404, "Request not found or not open")
+    current_user = db.query(User).filter(User.id == offer.supplier_id).first()
+    # ensure supplier actually has a matching product (optional)
+    if req.category not in {p.category for p in current_user.products}:
+        raise HTTPException(403, "You don’t carry that category")
+
+    offer = Offer(
+        request_id  = req.id,
+        supplier_id = current_user.id,
+        proposed    = req.offer_price,
+    )
+    db.add(offer)
     db.commit()
     db.refresh(offer)
-    return offer
-
+    return offer    

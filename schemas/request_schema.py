@@ -7,6 +7,7 @@ from uuid import UUID
 class RequestBase(BaseModel):
     title: str
     category: str
+    quantity:Optional[int] = 1
     description : Optional[str] = None
     offer_price : float
     customer_id: UUID

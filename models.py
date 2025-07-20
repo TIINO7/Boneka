@@ -20,8 +20,11 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String) # male or female
     created_at    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    status     = Column(Enum("active","disabled","pending", name="user_statuses"),
-                          server_default="active", nullable=False)
+    status     = Column(Enum("active",
+                            "disabled",
+                            "pending",
+                            name="user_statuses"),
+                            server_default="active", nullable=False)
     latitude  = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     
@@ -30,6 +33,9 @@ class User(Base):
     offers = relationship("Offer", back_populates="supplier", cascade="all, delete")
     profile_image = relationship("ProfileImage", back_populates="user", uselist=False, cascade="all, delete")
     products = relationship("Product", back_populates="supplier", cascade="all, delete")
+    customer_orders = relationship("Order", foreign_keys="[Order.customer_id]", back_populates="customer")
+    supplier_orders = relationship("Order", foreign_keys="[Order.supplier_id]", back_populates="supplier")
+
 
 
 class RequestPost(Base):
@@ -39,6 +45,7 @@ class RequestPost(Base):
     description = Column(Text)
     category = Column(Text)
     offer_price = Column(Numeric(12,2))
+    quantity = Column(Integer, default=1)
     status = Column(
         Enum("open","accepted","declined","cancelled", name="request_statuses"),
         server_default="open",
@@ -114,3 +121,29 @@ class DeviceToken(Base):
     issued_at = Column(DateTime, server_default=func.now(), nullable=False)
     last_used = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     expires_at = Column(DateTime, nullable=False)
+
+
+# orders for supplier
+class Order(Base):
+    __tablename__ = "orders"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    request_id = Column(UUID(as_uuid=True), ForeignKey("request_posts.id"), nullable=False)
+    offer_id = Column(UUID(as_uuid=True), ForeignKey("offers.id"), nullable=False)
+
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    status = Column(Enum("placed", "delivered", "cancelled", name="order_statuses"),
+                    server_default="placed", nullable=False)
+
+    total_price = Column(Numeric(12, 2), nullable=False)
+    quantity = Column(Integer, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    request = relationship("RequestPost")
+    offer = relationship("Offer")
+    customer = relationship("User", foreign_keys=[customer_id], back_populates="customer_orders")
+    supplier = relationship("User", foreign_keys=[supplier_id], back_populates="supplier_orders")
