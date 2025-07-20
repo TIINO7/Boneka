@@ -79,7 +79,7 @@ def respond_to_offer(
     Used by the customer to accept an offer and create an order
     Args:
         offer_id (UUID): _description_
-        action (OfferAction): _description_
+        action (OfferAction): canbe accepted or rejected
         db (Session, optional): _description_. Defaults to Depends(get_db).
 
     Raises:
@@ -87,7 +87,7 @@ def respond_to_offer(
         HTTPException: _description_
 
     Returns:
-        _type_: _description_
+        order: The created order object if the offer is accepted, otherwise a message indicating rejection.
     """
 
     offer = (
@@ -106,6 +106,17 @@ def respond_to_offer(
     # if accepted, you may also want to close the request:
     if action.action == "accept":
         offer.request.status = "accepted"
+
+        # Reject all other offers for this request
+        other_offers = (
+            db.query(Offer)
+            .filter(Offer.request_id == offer.request.id)
+            .filter(Offer.id != offer.id)
+            .filter(Offer.status == "pending")
+            .all()
+        )
+        for other_offer in other_offers:
+            other_offer.status = "rejected"
         
         #create an order if the requested is accepted by the customer
         order = Order(
@@ -115,7 +126,7 @@ def respond_to_offer(
             supplier_id = offer.supplier_id,
             status = "placed",
             total_price = offer.proposed,
-            quanity = offer.request.quantity
+            quantity = offer.request.quantity
         )
         db.add(order)
         db.commit()
