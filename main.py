@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from database import engine
 import models
-from routers import user, supplier,products,request,offer,auth
+from routers import user, supplier,products,request,offer,auth,orders
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -24,7 +24,7 @@ app.include_router(products.product_router, prefix="/products", tags=["products"
 app.include_router(request.request_router)
 app.include_router(offer.offer_router)
 app.include_router(auth.auth_router)
-
+app.include_router(orders.orders_router)
 
 if __name__ == "__main__":
     import uvicorn
